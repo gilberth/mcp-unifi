@@ -1,41 +1,39 @@
-name: "mcp-unifi"
-description: "Manage your UniFi network infrastructure through AI agents. Monitor devices, clients, health status, configure firewall rules, and analyze network performance with comprehensive UniFi Controller integration."
+name: "mcp-unifi-basic"
 runtime: "python"
-start:
-  type: "http"
-  config:
-    type: "object"
-    required: ["unifiRouterIp", "unifiUsername", "unifiPassword"]
-    properties:
-      unifiRouterIp:
-        type: "string"
-        title: "UniFi Router IP"
-        description: "IP address of your UniFi Controller/Router"
-        pattern: "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
-      unifiUsername:
-        type: "string"
-        title: "UniFi Username"
-        description: "Username for UniFi Controller authentication"
-      unifiPassword:
-        type: "string"
-        title: "UniFi Password"
-        description: "Password for UniFi Controller authentication"
-        format: "password"
-      unifiPort:
-        type: "integer"
-        title: "UniFi Port (Optional)"
-        description: "Port for UniFi Controller (default: 443)"
-        default: 443
-        minimum: 1
-        maximum: 65535
-      unifiVerifySsl:
-        type: "boolean"
-        title: "Verify SSL (Optional)"
-        description: "Verify SSL certificates (default: false for self-signed certs)"
-        default: false
-  exampleConfig:
-    unifiRouterIp: "192.168.1.1"
-    unifiUsername: "admin"
-    unifiPassword: "your-password-here"
-    unifiPort: 443
-    unifiVerifySsl: false
+start_type: "http"
+
+# Parámetros de configuración para UniFi
+parameters:
+  - name: "unifiRouterIp"
+    type: "string"
+    required: true
+    default: "192.168.1.1"
+    description: "IP address of the UniFi controller"
+    example: "192.168.1.1"
+  
+  - name: "unifiUsername"
+    type: "string"
+    required: true
+    default: "admin"
+    description: "Username for UniFi controller"
+    example: "admin"
+  
+  - name: "unifiPassword"
+    type: "string"
+    required: true
+    description: "Password for UniFi controller"
+    example: "password123"
+  
+  - name: "unifiPort"
+    type: "string"
+    required: false
+    default: "443"
+    description: "Port for UniFi controller (usually 443 for UniFi OS, 8443 for traditional)"
+    example: "443"
+  
+  - name: "unifiVerifySsl"
+    type: "string"
+    required: false
+    default: "false"
+    description: "Whether to verify SSL certificates (set to false for self-signed certificates)"
+    example: "false"
