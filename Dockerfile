@@ -1,22 +1,25 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
-# Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar requirements y instalar dependencias Python
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Copiar código fuente
-COPY . .
+# Copy requirements first for better caching
+COPY requirements.txt ./
 
-# Exponer puerto
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY *.py ./
+
+# Expose the port that Smithery will use
 EXPOSE 3000
 
-# Comando de inicio
-CMD ["python", "smithery_server.py"]
+# Start the Smithery adapter server
+CMD ["python", "-u", "smithery_server.py"]

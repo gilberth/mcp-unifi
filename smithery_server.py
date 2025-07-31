@@ -1,74 +1,82 @@
 #!/usr/bin/env python3
 """
-Adaptador del servidor MCP UniFi para Smithery
-
-Este archivo actúa como punto de entrada para Smithery,
-configurando las variables de entorno desde la configuración
-de Smithery y luego iniciando el servidor MCP principal.
+Adaptador HTTP para el servidor MCP UniFi para Smithery
 """
 
 import os
+import sys
 import asyncio
+import logging
 from typing import Dict, Any
 
-# Configurar variables de entorno desde Smithery
-def setup_environment_from_smithery():
-    """Configura las variables de entorno desde la configuración de Smithery"""
-    
-    # Mapeo de configuración de Smithery a variables de entorno
-    smithery_to_env = {
-        "unifiRouterIp": "UNIFI_ROUTER_IP",
-        "unifiUsername": "UNIFI_USERNAME", 
-        "unifiPassword": "UNIFI_PASSWORD",
-        "unifiPort": "UNIFI_PORT",
-        "unifiVerifySsl": "UNIFI_VERIFY_SSL"
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
+logger = logging.getLogger(__name__)
+
+def setup_environment():
+    """
+    Configura las variables de entorno para el servidor MCP
+    """
+    # Configurar valores por defecto si no están presentes
+    defaults = {
+        'UNIFI_ROUTER_IP': '192.168.1.1',
+        'UNIFI_USERNAME': 'admin',
+        'UNIFI_PASSWORD': 'password',
+        'UNIFI_PORT': '443',
+        'UNIFI_VERIFY_SSL': 'false',
+        'UNIFI_API_TIMEOUT': '30'
     }
     
-    # Configurar variables de entorno desde variables del sistema
-    for smithery_key, env_key in smithery_to_env.items():
-        # Smithery pasa la configuración como variables de entorno con prefijo
-        smithery_env_key = f"CONFIG_{smithery_key.upper()}"
-        if smithery_env_key in os.environ:
-            os.environ[env_key] = os.environ[smithery_env_key]
-        # También verificar sin prefijo por compatibilidad
-        elif smithery_key in os.environ:
-            os.environ[env_key] = os.environ[smithery_key]
+    for key, default_value in defaults.items():
+        if not os.getenv(key):
+            os.environ[key] = default_value
     
-    # Configurar valores por defecto si no están presentes
-    if "UNIFI_PORT" not in os.environ:
-        os.environ["UNIFI_PORT"] = "443"
-    
-    if "UNIFI_VERIFY_SSL" not in os.environ:
-        os.environ["UNIFI_VERIFY_SSL"] = "false"
-    
-    # Configurar timeout por defecto
-    if "UNIFI_API_TIMEOUT" not in os.environ:
-        os.environ["UNIFI_API_TIMEOUT"] = "30"
+    logger.info(f"UniFi Router IP: {os.getenv('UNIFI_ROUTER_IP')}")
+    logger.info(f"UniFi Port: {os.getenv('UNIFI_PORT')}")
+    logger.info(f"SSL Verification: {os.getenv('UNIFI_VERIFY_SSL')}")
 
 
 async def main():
-    """Función principal para Smithery"""
+    """
+    Función principal para ejecutar el servidor MCP
+    """
     try:
-        # Configurar entorno desde Smithery
-        setup_environment_from_smithery()
+        # Configurar entorno
+        setup_environment()
         
-        # Importar y ejecutar el servidor MCP principal
+        # Configurar el puerto desde la variable de entorno PORT (requerido por Smithery)
+        port = int(os.getenv('PORT', '3000'))
+        host = os.getenv('HOST', '0.0.0.0')
+        
+        logger.info(f"Starting UniFi MCP Server for Smithery on {host}:{port}")
+        
+        # Importar y ejecutar el servidor MCP
         from unifi_mcp_server import mcp
         
-        # Ejecutar servidor MCP con transporte HTTP
-        await mcp.run(transport="http", port=3000)
+        # Ejecutar el servidor MCP con transporte HTTP
+        await mcp.run(transport="http", host=host, port=port)
         
+    except ImportError as e:
+        logger.error(f"Error importing MCP server: {e}")
+        logger.error("Make sure unifi_mcp_server.py is in the same directory")
+        sys.exit(1)
     except Exception as e:
-        print(f"Error starting MCP server: {e}", file=sys.stderr)
-        raise
+        logger.error(f"Error starting server: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    import sys
     try:
+        # Ejecutar el servidor
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nServer stopped by user", file=sys.stderr)
+        logger.info("Server stopped by user")
     except Exception as e:
-        print(f"Fatal error: {e}", file=sys.stderr)
+        logger.error(f"Fatal error: {e}")
         sys.exit(1)
